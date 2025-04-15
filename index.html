@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI System Call Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tech-dark': '#0f172a',
+                        'tech-blue': '#38bdf8',
+                        'tech-light': '#94a3b8',
+                        'tech-lightest': '#e2e8f0',
+                        'tech-red': '#fb7185',
+                        'tech-yellow': '#fbbf24', 
+                        'tech-green': '#34d399',
+                        'tech-purple': '#a78bfa',
+                        'tech-cyan': '#22d3ee',
+                        'tech-orange': '#fb923c',
+                        'tech-pink': '#f472b6',
+                        'tech-indigo': '#818cf8'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+        .category-button.active {
+            background-color: #38bdf8;
+            color: #0f172a;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+        .syscall-card {
+            transition: all 0.3s ease-in-out;
+            border: 1px solid transparent;
+        }
+        .syscall-card:hover {
+            transform: translateY(-4px);
+            border-color: #38bdf8;
+            box-shadow: 0 4px 6px -1px rgba(56, 189, 248, 0.1), 0 2px 4px -1px rgba(56, 189, 248, 0.06);
+        }
+        .animate-pulse-slow {
+            animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        .card-glow {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+        }
+        .progress-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #1e293b;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-tech-dark text-tech-light font-mono antialiased min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-tech-blue mb-2 tracking-wide bg-gradient-to-r from-tech-blue to-tech-cyan bg-clip-text text-transparent">
+                AI System Call Optimizer
+            </h1>
+            <p class="text-xl text-tech-light opacity-90 mb-4">
+                Real-time Performance Monitoring and Optimization
+            </p>
+            <div class="flex items-center justify-center space-x-4 text-sm text-tech-light">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-tech-green mr-2 animate-pulse"></div>
+                    <span>Monitoring Active</span>
+                </div>
+                <div>|</div>
+                <div class="flex items-center">
+                    <span>Refresh: </span>
+                    <select id="refresh-rate" class="ml-2 bg-[#1e293b] border border-[#334155] rounded-lg px-2 py-1 text-tech-lightest focus:outline-none focus:ring-2 focus:ring-tech-blue">
+                        <option value="5">5 seconds</option>
+                        <option value="10">10 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                    </select>
+                </div>
+                <div>|</div>
+                <div class="flex items-center">
+                    <span>Theme: </span>
+                    <select id="theme-selector" class="ml-2 bg-[#1e293b] border border-[#334155] rounded-lg px-2 py-1 text-tech-lightest focus:outline-none focus:ring-2 focus:ring-tech-blue">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                        <option value="system">System</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar with filters and categories -->
+            <div class="lg:col-span-1">
+                <div class="bg-[#112240] rounded-lg shadow-xl p-4 mb-6">
+                    <h2 class="text-xl text-tech-blue mb-4 border-b border-[#233554] pb-2">
+                        Filters
+                    </h2>
+                    <div class="space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="show-unknown" class="form-checkbox text-tech-blue">
+                            <span class="ml-2 text-tech-light">Show unknown syscalls</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="show-critical-only" class="form-checkbox text-tech-red">
+                            <span class="ml-2 text-tech-light">Show critical issues only</span>
+                        </label>
+                        <div class="mt-4">
+                            <label class="block mb-2 text-tech-light">Min executions:</label>
+                            <input type="range" id="min-executions" min="1" max="1000" value="1" class="w-full">
+                            <div class="flex justify-between text-xs text-tech-light mt-1">
+                                <span>1</span>
+                                <span id="min-executions-value">1</span>
+                                <span>1000+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[#112240] rounded-lg shadow-xl p-4">
+                    <h2 class="text-xl text-tech-blue mb-4 border-b border-[#233554] pb-2">
+                        Categories
+                    </h2>
+                    <div id="category-buttons" class="space-y-2">
+                        <button class="category-button w-full py-2 px-3 rounded text-left text-tech-lightest bg-[#0a192f] hover:bg-[#233554] active">All Categories</button>
+                        <!-- Categories will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content -->
+            <div class="lg:col-span-3">
+                <!-- System overview cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-[#112240] rounded-lg shadow-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-tech-blue font-semibold">System Calls</h3>
+                            <span id="total-syscalls" class="text-2xl text-tech-lightest">0</span>
+                        </div>
+                        <div class="h-2 bg-[#0a192f] rounded overflow-hidden">
+                            <div id="critical-progress" class="h-full bg-tech-red" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-tech-light mt-1">
+                            <span>Total</span>
+                            <span id="critical-count" class="text-tech-red">0 critical</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#112240] rounded-lg shadow-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-tech-blue font-semibold">CPU Impact</h3>
+                            <span id="avg-cpu-impact" class="text-2xl text-tech-lightest">0%</span>
+                        </div>
+                        <div class="h-2 bg-[#0a192f] rounded overflow-hidden">
+                            <div id="cpu-progress" class="h-full bg-tech-yellow" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-tech-light mt-1">
+                            <span>Average</span>
+                            <span id="max-cpu-impact" class="text-tech-yellow">0% max</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#112240] rounded-lg shadow-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-tech-blue font-semibold">Memory Impact</h3>
+                            <span id="avg-memory-impact" class="text-2xl text-tech-lightest">0%</span>
+                        </div>
+                        <div class="h-2 bg-[#0a192f] rounded overflow-hidden">
+                            <div id="memory-progress" class="h-full bg-tech-purple" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-tech-light mt-1">
+                            <span>Average</span>
+                            <span id="max-memory-impact" class="text-tech-purple">0% max</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System calls grid view -->
+                <div class="bg-[#112240] rounded-lg shadow-xl p-4 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl text-tech-blue">
+                            System Calls
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-tech-light">View:</span>
+                            <button id="grid-view-btn" class="px-2 py-1 bg-[#233554] text-tech-blue rounded">Grid</button>
+                            <button id="table-view-btn" class="px-2 py-1 hover:bg-[#233554] text-tech-light rounded">Table</button>
+                        </div>
+                    </div>
+                    
+                    <div id="search-box" class="mb-4">
+                        <input type="text" id="syscall-search" placeholder="Search system calls..." class="w-full bg-[#0a192f] border border-[#233554] rounded px-4 py-2 text-tech-lightest">
+                    </div>
+                    
+                    <!-- Grid view (default) -->
+                    <div id="grid-view" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto scrollbar-custom pb-2">
+                        <!-- System call cards will be populated here -->
+                    </div>
+                    
+                    <!-- Table view (hidden by default) -->
+                    <div id="table-view" class="hidden max-h-96 overflow-y-auto scrollbar-custom">
+                        <table class="w-full">
+                            <thead class="bg-[#0a192f] sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">Name</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">Category</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">Executions</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">Avg Time</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">CPU</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-tech-blue uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-[#233554]">
+                                <!-- Table rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Selected system call details panel -->
+                <div id="syscall-details" class="bg-[#112240] rounded-lg shadow-xl p-4 mb-6 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="detail-title" class="text-xl text-tech-blue">System Call Details</h2>
+                        <button id="close-details" class="text-tech-light hover:text-tech-blue">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="mb-6">
+                                <h3 class="text-tech-blue font-semibold mb-2">Performance Metrics</h3>
+                                <div class="bg-[#0a192f] rounded p-4 space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-tech-light">Average Time:</span>
+                                        <span id="detail-avg-time" class="text-tech-lightest font-semibold">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-tech-light">Executions:</span>
+                                        <span id="detail-executions" class="text-tech-lightest font-semibold">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-tech-light">Variance:</span>
+                                        <span id="detail-variance" class="text-tech-lightest font-semibold">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-tech-light">Peak Performance:</span>
+                                        <span id="detail-peak" class="text-tech-lightest font-semibold">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-tech-light">Last Optimized:</span>
+                                        <span id="detail-last-optimized" class="text-tech-lightest font-semibold">Never</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-tech-blue font-semibold mb-2">Resource Impact</h3>
+                                <div class="bg-[#0a192f] rounded p-4">
+                                    <div class="mb-3">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-tech-light">CPU:</span>
+                                            <span id="detail-cpu" class="text-tech-yellow font-semibold">0%</span>
+                                        </div>
+                                        <div class="h-2 bg-[#233554] rounded overflow-hidden">
+                                            <div id="detail-cpu-bar" class="h-full bg-tech-yellow" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-tech-light">Memory:</span>
+                                            <span id="detail-memory" class="text-tech-purple font-semibold">0%</span>
+                                        </div>
+                                        <div class="h-2 bg-[#233554] rounded overflow-hidden">
+                                            <div id="detail-memory-bar" class="h-full bg-tech-purple" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-tech-light">Disk I/O:</span>
+                                            <span id="detail-disk" class="text-tech-green font-semibold">0%</span>
+                                        </div>
+                                        <div class="h-2 bg-[#233554] rounded overflow-hidden">
+                                            <div id="detail-disk-bar" class="h-full bg-tech-green" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="mb-6">
+                                <h3 class="text-tech-blue font-semibold mb-2">Description</h3>
+                                <div id="detail-description" class="bg-[#0a192f] rounded p-4 text-tech-light min-h-[100px]">
+                                    Select a system call to view its description.
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-tech-blue font-semibold mb-2">AI Recommendation</h3>
+                                <div id="detail-recommendation" class="bg-[#0a192f] rounded p-4 text-tech-light min-h-[100px]">
+                                    Select a system call to view optimization recommendations.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="text-tech-blue font-semibold mb-2">Performance Trend</h3>
+                        <div class="bg-[#0a192f] rounded p-4">
+                            <canvas id="performance-chart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Optimization recommendations -->
+                <div id="recommendations-container" class="bg-[#112240] rounded-lg shadow-xl p-4">
+                    <h2 class="text-xl text-tech-blue mb-4 border-b border-[#233554] pb-2">
+                        Critical Recommendations
+                    </h2>
+                    <div id="recommendations-list" class="space-y-4">
+                        <!-- Recommendations will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System call descriptions
+        const syscallDescriptions = {
+            'read': 'Reads data from a file descriptor into a buffer.',
+            'write': 'Writes data from a buffer to a file descriptor.',
+            'open': 'Opens a file and returns a file descriptor.',
+            'close': 'Closes a file descriptor.',
+            'stat': 'Gets file status information.',
+            'fstat': 'Gets file status information from a file descriptor.',
+            'lstat': 'Gets file status, following symbolic links.',
+            'mmap': 'Maps files or devices into memory.',
+            'mprotect': 'Sets protection on a memory region.',
+            'munmap': 'Unmaps pages of memory.',
+            'rt_sigaction': 'Examines and changes a signal action.',
+            'rt_sigprocmask': 'Examines and changes blocked signals.',
+            'access': 'Checks permission for accessing a file.',
+            'pipe': 'Creates a pipe for interprocess communication.',
+            'select': 'Monitors file descriptors for readiness.',
+            'clone': 'Creates a child process or thread.',
+            'fork': 'Creates a child process.',
+            'execve': 'Executes a program.',
+            'exit': 'Terminates the calling process.',
+            'wait4': 'Waits for process termination.',
+            'kill': 'Sends a signal to a process.',
+            'futex': 'Fast user-space locking for thread synchronization.',
+            'clock_gettime': 'Gets the time from a specific clock.',
+            'openat': 'Opens a file relative to a directory file descriptor.',
+            'pipe2': 'Creates a pipe with additional flags.',
+        };
+
+        // Category descriptions
+        const categoryDescriptions = {
+            'File I/O': 'System calls related to file operations like reading, writing, opening, and closing files.',
+            'Memory': 'System calls that deal with memory management, allocation, and protection.',
+            'Process': 'System calls for process creation, termination, and management.',
+            'Signal': 'System calls for handling signals and interrupts.',
+            'IPC': 'Inter-Process Communication system calls for communication between processes.',
+            'Synchronization': 'System calls for thread synchronization and locking.',
+            'Time': 'System calls related to time measurement and management.',
+            'User': 'System calls related to user and group IDs and permissions.',
+            'System': 'General system information and management calls.',
+            'I/O Multiplexing': 'System calls for handling multiple I/O channels simultaneously.',
+            'File System': 'System calls for file system operations and metadata.',
+            'Architecture': 'Architecture-specific system calls.',
+            'Resource': 'System calls for resource limits and management.',
+            'Unknown': 'System calls that could not be identified or categorized.'
+        };
+
+        // State for storing performance history
+        let performanceHistory = {};
+        let activeCategory = 'All Categories';
+        let performanceChart = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize UI
+            setupEventListeners();
+            updateDashboard();
+            
+            // Set up refresh interval
+            const refreshInterval = setInterval(updateDashboard, 5000);
+            
+            // Update refresh rate when changed
+            document.getElementById('refresh-rate').addEventListener('change', function() {
+                clearInterval(refreshInterval);
+                const rate = parseInt(this.value) * 1000;
+                setInterval(updateDashboard, rate);
+            });
+        });
+        
+        function setupEventListeners() {
+            // Filter: Show unknown syscalls
+            document.getElementById('show-unknown').addEventListener('change', updateSyscallView);
+            
+            // Filter: Show critical only
+            document.getElementById('show-critical-only').addEventListener('change', updateSyscallView);
+            
+            // Filter: Min executions
+            const minExecutions = document.getElementById('min-executions');
+            minExecutions.addEventListener('input', function() {
+                document.getElementById('min-executions-value').textContent = this.value;
+                updateSyscallView();
+            });
+            
+            // View toggle: Grid or Table
+            document.getElementById('grid-view-btn').addEventListener('click', function() {
+                this.classList.add('bg-[#233554]', 'text-tech-blue');
+                document.getElementById('table-view-btn').classList.remove('bg-[#233554]', 'text-tech-blue');
+                document.getElementById('grid-view').classList.remove('hidden');
+                document.getElementById('table-view').classList.add('hidden');
+            });
+            
+            document.getElementById('table-view-btn').addEventListener('click', function() {
+                this.classList.add('bg-[#233554]', 'text-tech-blue');
+                document.getElementById('grid-view-btn').classList.remove('bg-[#233554]', 'text-tech-blue');
+                document.getElementById('grid-view').classList.add('hidden');
+                document.getElementById('table-view').classList.remove('hidden');
+            });
+            
+            // Search system calls
+            document.getElementById('syscall-search').addEventListener('input', updateSyscallView);
+            
+            // Close syscall details panel
+            document.getElementById('close-details').addEventListener('click', function() {
+                document.getElementById('syscall-details').classList.add('hidden');
+            });
+            
+            // Theme selector
+            document.getElementById('theme-selector').addEventListener('change', function() {
+                const theme = this.value;
+                document.body.className = `bg-${theme === 'dark' ? 'tech-dark' : theme === 'light' ? 'tech-lightest' : 'white'} text-${theme === 'dark' ? 'tech-light' : 'tech-dark'} font-mono antialiased min-h-screen`;
+                
+                // Update all cards and panels
+                document.querySelectorAll('.bg-\\[#112240\\]').forEach(el => {
+                    el.className = el.className.replace('bg-[#112240]', theme === 'dark' ? 'bg-[#1a1b26]' : theme === 'light' ? 'bg-[#c0caf5]' : 'bg-gray-100');
+                });
+                
+                // Update borders
+                document.querySelectorAll('.border-\\[#233554\\]').forEach(el => {
+                    el.className = el.className.replace('border-[#233554]', theme === 'dark' ? 'border-[#24283b]' : theme === 'light' ? 'border-[#a9b1d6]' : 'border-gray-300');
+                });
+                
+                // Update text colors
+                document.querySelectorAll('.text-tech-light').forEach(el => {
+                    el.className = el.className.replace('text-tech-light', theme === 'dark' ? 'text-tech-light' : theme === 'light' ? 'text-tech-dark' : 'text-gray-800');
+                });
+                
+                document.querySelectorAll('.text-tech-lightest').forEach(el => {
+                    el.className = el.className.replace('text-tech-lightest', theme === 'dark' ? 'text-tech-lightest' : theme === 'light' ? 'text-tech-dark' : 'text-gray-900');
+                });
+                
+                // Update scrollbar colors
+                const style = document.createElement('style');
+                style.textContent = `
+                    .scrollbar-custom::-webkit-scrollbar-track {
+                        background: ${theme === 'dark' ? '#1a1b26' : theme === 'light' ? '#c0caf5' : '#f3f4f6'};
+                    }
+                    .scrollbar-custom::-webkit-scrollbar-thumb {
+                        background: ${theme === 'dark' ? '#24283b' : theme === 'light' ? '#a9b1d6' : '#d1d5db'};
+                    }
+                    .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+                        background: ${theme === 'dark' ? '#7aa2f7' : theme === 'light' ? '#7aa2f7' : '#7aa2f7'};
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Update chart colors if it exists
+                if (performanceChart) {
+                    performanceChart.options.scales.x.grid.color = theme === 'dark' ? 'rgba(35, 53, 84, 0.3)' : theme === 'light' ? 'rgba(169, 177, 214, 0.3)' : 'rgba(209, 213, 219, 0.3)';
+                    performanceChart.options.scales.y.grid.color = theme === 'dark' ? 'rgba(35, 53, 84, 0.3)' : theme === 'light' ? 'rgba(169, 177, 214, 0.3)' : 'rgba(209, 213, 219, 0.3)';
+                    performanceChart.options.scales.y.ticks.color = theme === 'dark' ? '#a9b1d6' : theme === 'light' ? '#1a1b26' : '#374151';
+                    performanceChart.options.scales.x.ticks.color = theme === 'dark' ? '#a9b1d6' : theme === 'light' ? '#1a1b26' : '#374151';
+                    performanceChart.options.plugins.legend.labels.color = theme === 'dark' ? '#c0caf5' : theme === 'light' ? '#1a1b26' : '#374151';
+                    performanceChart.update();
+                }
+                
+                // Save theme preference
+                localStorage.setItem('theme', theme);
+            });
+        }
+        
+        function updateDashboard() {
+            fetchPerformanceData();
+            fetchCategories();
+            fetchRecommendations();
+        }
+        
+        function fetchPerformanceData() {
+            fetch('/performance')
+                .then(response => response.json())
+                .then(data => {
+                    // Update performance history
+                    const timestamp = Date.now();
+                    Object.entries(data).forEach(([syscall, record]) => {
+                        if (!performanceHistory[syscall]) {
+                            performanceHistory[syscall] = [];
+                        }
+                        // Store only last 20 points to avoid memory bloat
+                        if (performanceHistory[syscall].length > 20) {
+                            performanceHistory[syscall].shift();
+                        }
+                        performanceHistory[syscall].push({
+                            timestamp,
+                            average_time: record.average_time,
+                            cpu_impact: record.resource_impact.cpu_percent || 0,
+                            memory_impact: record.resource_impact.memory_percent || 0
+                        });
+                    });
+                    
+                    updateSystemOverview(data);
+                    updateSyscallView(data);
+                })
+                .catch(error => console.error('Error fetching performance data:', error));
+        }
+        
+        function fetchCategories() {
+            fetch('/categories')
+                .then(response => response.json())
+                .then(data => {
+                    updateCategoryButtons(data);
+                })
+                .catch(error => console.error('Error fetching categories:', error));
+        }
+        
+        function fetchRecommendations() {
+            fetch('/recommendations')
+                .then(response => response.json())
+                .then(data => {
+                    updateRecommendations(data);
+                })
+                .catch(error => console.error('Error fetching recommendations:', error));
+        }
+        
+        function updateSystemOverview(data) {
+            const syscalls = Object.values(data);
+            
+            // Count total syscalls and critical ones
+            const totalSyscalls = syscalls.length;
+            const criticalSyscalls = syscalls.filter(record => 
+                record.average_time > 0.05 || 
+                (record.resource_impact.cpu_percent || 0) > 50 ||
+                (record.resource_impact.memory_percent || 0) > 50
+            ).length;
+            
+            // Calculate average and max resource impacts
+            let totalCpuImpact = 0;
+            let totalMemoryImpact = 0;
+            let maxCpuImpact = 0;
+            let maxMemoryImpact = 0;
+            
+            syscalls.forEach(record => {
+                const cpuImpact = record.resource_impact.cpu_percent || 0;
+                const memoryImpact = record.resource_impact.memory_percent || 0;
+                
+                totalCpuImpact += cpuImpact;
+                totalMemoryImpact += memoryImpact;
+                
+                maxCpuImpact = Math.max(maxCpuImpact, cpuImpact);
+                maxMemoryImpact = Math.max(maxMemoryImpact, memoryImpact);
+            });
+            
+            const avgCpuImpact = syscalls.length ? totalCpuImpact / syscalls.length : 0;
+            const avgMemoryImpact = syscalls.length ? totalMemoryImpact / syscalls.length : 0;
+            
+            // Update UI
+            document.getElementById('total-syscalls').textContent = totalSyscalls;
+            document.getElementById('critical-count').textContent = `${criticalSyscalls} critical`;
+            document.getElementById('critical-progress').style.width = `${(criticalSyscalls / Math.max(1, totalSyscalls)) * 100}%`;
+            
+            document.getElementById('avg-cpu-impact').textContent = `${avgCpuImpact.toFixed(1)}%`;
+            document.getElementById('max-cpu-impact').textContent = `${maxCpuImpact.toFixed(1)}% max`;
+            document.getElementById('cpu-progress').style.width = `${Math.min(100, avgCpuImpact)}%`;
+            
+            document.getElementById('avg-memory-impact').textContent = `${avgMemoryImpact.toFixed(1)}%`;
+            document.getElementById('max-memory-impact').textContent = `${maxMemoryImpact.toFixed(1)}% max`;
+            document.getElementById('memory-progress').style.width = `${Math.min(100, avgMemoryImpact)}%`;
+        }
+        
+        function updateSyscallView(data) {
+            if (!data) {
+                // If no data is provided, fetch it
+                fetch('/performance')
+                    .then(response => response.json())
+                    .then(updateSyscallView)
+                    .catch(error => console.error('Error fetching performance data:', error));
+                return;
+            }
+            
+            // Apply filters
+            const showUnknown = document.getElementById('show-unknown').checked;
+            const showCriticalOnly = document.getElementById('show-critical-only').checked;
+            const minExecutions = parseInt(document.getElementById('min-executions').value);
+            const searchQuery = document.getElementById('syscall-search').value.toLowerCase();
+            
+            let filteredSyscalls = Object.entries(data)
+                .filter(([syscall, record]) => {
+                    // Check for unknown syscalls
+                    if (!showUnknown && syscall.startsWith('unknown_')) {
+                        return false;
+                    }
+                    
+                    // Check for critical issues
+                    if (showCriticalOnly && 
+                        !(record.average_time > 0.05 || 
+                          (record.resource_impact.cpu_percent || 0) > 50 ||
+                          (record.resource_impact.memory_percent || 0) > 50)) {
+                        return false;
+                    }
+                    
+                    // Check for minimum executions
+                    if (record.execution_count < minExecutions) {
+                        return false;
+                    }
+                    
+                    // Check for search query
+                    if (searchQuery && !syscall.toLowerCase().includes(searchQuery)) {
+                        return false;
+                    }
+                    
+                    // Check for selected category
+                    if (activeCategory !== 'All Categories' && record.category !== activeCategory) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+            
+            // Sort by execution count (descending)
+            filteredSyscalls.sort((a, b) => b[1].execution_count - a[1].execution_count);
+            
+            // Update grid view
+            updateGridView(filteredSyscalls);
+            
+            // Update table view
+            updateTableView(filteredSyscalls);
+        }
+        
+        function updateGridView(syscalls) {
+            const gridContainer = document.getElementById('grid-view');
+            gridContainer.innerHTML = '';
+            // Update grid view
+            updateGridView(filteredSyscalls);
+            
+            // Update table view
+            updateTableView(filteredSyscalls);
+        }
+        
+        function updateGridView(syscalls) {
+            const gridContainer = document.getElementById('grid-view');
+            gridContainer.innerHTML = '';
+            
+            syscalls.forEach(([syscall, record]) => {
+                const card = document.createElement('div');
+                card.className = 'syscall-card bg-[#0a192f] rounded-lg shadow p-4 cursor-pointer hover:border hover:border-tech-blue';
+                card.dataset.syscall = syscall;
+                
+                // Determine status color based on performance metrics
+                let statusColor = 'bg-tech-green';
+                let statusText = 'Good';
+                
+                if (record.average_time > 0.05 || record.resource_impact.cpu_percent > 50 || record.resource_impact.memory_percent > 50) {
+                    statusColor = 'bg-tech-red';
+                    statusText = 'Critical';
+                } else if (record.average_time > 0.02 || record.resource_impact.cpu_percent > 30 || record.resource_impact.memory_percent > 30) {
+                    statusColor = 'bg-tech-yellow';
+                    statusText = 'Warning';
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-tech-blue font-semibold">${syscall}</h3>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full ${statusColor} mr-1"></div>
+                            <span class="text-xs text-tech-light">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-tech-light mb-2">${record.category || 'Uncategorized'}</div>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-tech-light">Executions:</span>
+                        <span class="text-tech-lightest">${record.execution_count.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-tech-light">Avg Time:</span>
+                        <span class="text-tech-lightest">${record.average_time.toFixed(5)}s</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-tech-light">CPU:</span>
+                        <span class="text-tech-yellow">${record.resource_impact.cpu_percent.toFixed(1)}%</span>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => showSyscallDetails(syscall, record));
+                gridContainer.appendChild(card);
+            });
+            
+            if (syscalls.length === 0) {
+                gridContainer.innerHTML = '<div class="text-center col-span-full py-4 text-tech-light">No system calls matching the current filters.</div>';
+            }
+        }
+        
+        function updateTableView(syscalls) {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+            
+            syscalls.forEach(([syscall, record]) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-[#0a192f] cursor-pointer';
+                row.dataset.syscall = syscall;
+                
+                // Determine status color based on performance metrics
+                let statusColor = 'bg-tech-green';
+                let statusText = 'Good';
+                
+                if (record.average_time > 0.05 || record.resource_impact.cpu_percent > 50 || record.resource_impact.memory_percent > 50) {
+                    statusColor = 'bg-tech-red';
+                    statusText = 'Critical';
+                } else if (record.average_time > 0.02 || record.resource_impact.cpu_percent > 30 || record.resource_impact.memory_percent > 30) {
+                    statusColor = 'bg-tech-yellow';
+                    statusText = 'Warning';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-4 py-2 text-tech-lightest">${syscall}</td>
+                    <td class="px-4 py-2 text-tech-light">${record.category || 'Uncategorized'}</td>
+                    <td class="px-4 py-2 text-tech-lightest">${record.execution_count.toLocaleString()}</td>
+                    <td class="px-4 py-2 text-tech-lightest">${record.average_time.toFixed(5)}s</td>
+                    <td class="px-4 py-2 text-tech-yellow">${record.resource_impact.cpu_percent.toFixed(1)}%</td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full ${statusColor} mr-1"></div>
+                            <span class="text-xs text-tech-light">${statusText}</span>
+                        </div>
+                    </td>
+                `;
+                
+                row.addEventListener('click', () => showSyscallDetails(syscall, record));
+                tableBody.appendChild(row);
+            });
+            
+            if (syscalls.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-tech-light">No system calls matching the current filters.</td></tr>';
+            }
+        }
+        
+        function updateCategoryButtons(categories) {
+            const container = document.getElementById('category-buttons');
+            const allButton = container.querySelector('.category-button');
+            
+            // Clear existing buttons except the "All Categories" button
+            while (container.childElementCount > 1) {
+                container.removeChild(container.lastChild);
+            }
+            
+            // Add new category buttons
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'category-button w-full py-2 px-3 rounded text-left text-tech-lightest bg-[#0a192f] hover:bg-[#233554]';
+                button.textContent = category;
+                
+                button.addEventListener('click', function() {
+                    // Deactivate all buttons
+                    document.querySelectorAll('.category-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // Activate this button
+                    this.classList.add('active');
+                    
+                    // Set active category and update view
+                    activeCategory = category;
+                    updateSyscallView();
+                });
+                
+                container.appendChild(button);
+            });
+            
+            // Add event listener to "All Categories" button
+            allButton.addEventListener('click', function() {
+                // Deactivate all buttons
+                document.querySelectorAll('.category-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Activate this button
+                this.classList.add('active');
+                
+                // Set active category and update view
+                activeCategory = 'All Categories';
+                updateSyscallView();
+            });
+        }
+        
+        function updateRecommendations(recommendations) {
+            const container = document.getElementById('recommendations-list');
+            container.innerHTML = '';
+            
+            if (recommendations.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-tech-light">No critical issues detected at this time.</div>';
+                return;
+            }
+            
+            recommendations.forEach(rec => {
+                const card = document.createElement('div');
+                card.className = 'bg-[#0a192f] rounded-lg p-4 border-l-4 border-tech-red';
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-tech-lightest font-semibold">${rec.syscall}</h3>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-tech-red mr-1"></div>
+                            <span class="text-xs text-tech-light">Critical</span>
+                        </div>
+                    </div>
+                    <p class="text-tech-light mb-3">${rec.issue}</p>
+                    <div class="text-tech-blue text-sm">${rec.recommendation}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function showSyscallDetails(syscall, record) {
+            const detailPanel = document.getElementById('syscall-details');
+            detailPanel.classList.remove('hidden');
+            
+            // Update title
+            document.getElementById('detail-title').textContent = syscall;
+            
+            // Update metrics
+            document.getElementById('detail-avg-time').textContent = `${record.average_time.toFixed(5)}s`;
+            document.getElementById('detail-executions').textContent = record.execution_count.toLocaleString();
+            document.getElementById('detail-variance').textContent = `${(record.variance || 0).toFixed(5)}s`;
+            document.getElementById('detail-peak').textContent = `${(record.peak_time || 0).toFixed(5)}s`;
+            document.getElementById('detail-last-optimized').textContent = record.last_optimized || 'Never';
+            
+            // Update resource impact
+            const cpuImpact = record.resource_impact.cpu_percent || 0;
+            const memoryImpact = record.resource_impact.memory_percent || 0;
+            const diskImpact = record.resource_impact.disk_percent || 0;
+            
+            document.getElementById('detail-cpu').textContent = `${cpuImpact.toFixed(1)}%`;
+            document.getElementById('detail-memory').textContent = `${memoryImpact.toFixed(1)}%`;
+            document.getElementById('detail-disk').textContent = `${diskImpact.toFixed(1)}%`;
+            
+            document.getElementById('detail-cpu-bar').style.width = `${Math.min(100, cpuImpact)}%`;
+            document.getElementById('detail-memory-bar').style.width = `${Math.min(100, memoryImpact)}%`;
+            document.getElementById('detail-disk-bar').style.width = `${Math.min(100, diskImpact)}%`;
+            
+            // Update description
+            document.getElementById('detail-description').textContent = syscallDescriptions[syscall] || 'No description available for this system call.';
+            
+            // Update recommendation
+            let recommendation = 'No issues detected with this system call.';
+            
+            if (record.average_time > 0.05) {
+                recommendation = 'This system call is taking longer than expected. Consider optimizing the code that triggers this call or reducing the frequency of calls.';
+            } else if (cpuImpact > 50) {
+                recommendation = 'This system call has a high CPU impact. Consider batching operations or using more efficient alternatives.';
+            } else if (memoryImpact > 50) {
+                recommendation = 'This system call has a high memory impact. Check for memory leaks or implement more efficient memory management.';
+            }
+            
+            document.getElementById('detail-recommendation').textContent = recommendation;
+            
+            // Update performance chart
+            updatePerformanceChart(syscall);
+        }
+        
+        function updatePerformanceChart(syscall) {
+            const ctx = document.getElementById('performance-chart').getContext('2d');
+            
+            // Clear previous chart if it exists
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+            
+            // Get performance history for this syscall
+            const history = performanceHistory[syscall] || [];
+            
+            // Prepare data for the chart
+            const labels = history.map(entry => {
+                const date = new Date(entry.timestamp);
+                return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+            });
+            
+            const avgTimeData = history.map(entry => entry.average_time * 1000); // Convert to ms
+            const cpuData = history.map(entry => entry.cpu_impact);
+            const memoryData = history.map(entry => entry.memory_impact);
+            
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Avg Time (ms)',
+                            data: avgTimeData,
+                            borderColor: '#64ffda',
+                            backgroundColor: 'rgba(100, 255, 218, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'CPU Impact (%)',
+                            data: cpuData,
+                            borderColor: '#ffd866',
+                            backgroundColor: 'rgba(255, 216, 102, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Memory Impact (%)',
+                            data: memoryData,
+                            borderColor: '#bd93f9',
+                            backgroundColor: 'rgba(189, 147, 249, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Time (ms)',
+                                color: '#64ffda'
+                            },
+                            grid: {
+                                color: 'rgba(35, 53, 84, 0.3)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Impact (%)',
+                                color: '#ffd866'
+                            },
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                drawOnChartArea: false,
+                                color: 'rgba(35, 53, 84, 0.3)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(35, 53, 84, 0.3)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ccd6f6'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Mock data
+        function getRandomSyscalls() {
+            const syscalls = {
+                'read': {
+                    category: 'File I/O',
+                    execution_count: Math.floor(Math.random() * 10000) + 5000,
+                    average_time: (Math.random() * 0.01) + 0.001,
+                    variance: Math.random() * 0.003,
+                    peak_time: (Math.random() * 0.05) + 0.01,
+                    last_optimized: '2023-11-20 14:25:36',
+                    resource_impact: {
+                        cpu_percent: Math.random() * 30,
+                        memory_percent: Math.random() * 20,
+                        disk_percent: Math.random() * 60
+                    }
+                },
+                'write': {
+                    category: 'File I/O',
+                    execution_count: Math.floor(Math.random() * 8000) + 3000,
+                    average_time: (Math.random() * 0.02) + 0.001,
+                    variance: Math.random() * 0.005,
+                    peak_time: (Math.random() * 0.08) + 0.02,
+                    last_optimized: '2023-11-18 10:12:05',
+                    resource_impact: {
+                        cpu_percent: Math.random() * 25,
+                        memory_percent: Math.random() * 15,
+                        disk_percent: Math.random() * 70
+                    }
+                },
+                'mmap': {
+                    category: 'Memory',
+                    execution_count: Math.floor(Math.random() * 5000) + 2000,
+                    average_time: (Math.random() * 0.03) + 0.01,
+                    variance: Math.random() * 0.01,
+                    peak_time: (Math.random() * 0.1) + 0.05,
+                    last_optimized: null,
+                    resource_impact: {
+                        cpu_percent: Math.random() * 15,
+                        memory_percent: Math.random() * 60,
+                        disk_percent: Math.random() * 5
+                    }
+                },
+                'futex': {
+                    category: 'Synchronization',
+                    execution_count: Math.floor(Math.random() * 20000) + 10000,
+                    average_time: (Math.random() * 0.001) + 0.0001,
+                    variance: Math.random() * 0.0005,
+                    peak_time: (Math.random() * 0.01) + 0.001,
+                    last_optimized: '2024-11-22 09:30:15',
+                    resource_impact: {
+                        cpu_percent: Math.random() * 40,
+                        memory_percent: Math.random() * 10,
+                        disk_percent: Math.random() * 1
+                    }
+                },
+                'clock_gettime': {
+                    category: 'Time',
+                    execution_count: Math.floor(Math.random() * 30000) + 15000,
+                    average_time: (Math.random() * 0.0005) + 0.0001,
+                    variance: Math.random() * 0.0001,
+                    peak_time: (Math.random() * 0.001) + 0.0005,
+                    last_optimized: '2024-11-10 16:45:22',
+                    resource_impact: {
+                        cpu_percent: Math.random() * 5,
+                        memory_percent: Math.random() * 2,
+                        disk_percent: Math.random() * 0.5
+                    }
+                },
+                'select': {
+                    category: 'I/O Multiplexing',
+                    execution_count: Math.floor(Math.random() * 7000) + 3000,
+                    average_time: (Math.random() * 0.08) + 0.02,
+                    variance: Math.random() * 0.02,
+                    peak_time: (Math.random() * 0.2) + 0.1,
+                    last_optimized: null,
+                    resource_impact: {
+                        cpu_percent: Math.random() * 55,
+                        memory_percent: Math.random() * 25,
+                        disk_percent: Math.random() * 10
+                    }
+                },
+                'fork': {
+                    category: 'Process',
+                    execution_count: Math.floor(Math.random() * 500) + 100,
+                    average_time: (Math.random() * 0.1) + 0.05,
+                    variance: Math.random() * 0.05,
+                    peak_time: (Math.random() * 0.3) + 0.15,
+                    last_optimized: '2023-11-05 11:20:33',
+                    resource_impact: {
+                        cpu_percent: Math.random() * 70,
+                        memory_percent: Math.random() * 45,
+                        disk_percent: Math.random() * 30
+                    }
+                },
+                'unknown_syscall_123': {
+                    category: 'Unknown',
+                    execution_count: Math.floor(Math.random() * 200) + 50,
+                    average_time: (Math.random() * 0.2) + 0.1,
+                    variance: Math.random() * 0.1,
+                    peak_time: (Math.random() * 0.5) + 0.2,
+                    last_optimized: null,
+                    resource_impact: {
+                        cpu_percent: Math.random() * 85,
+                        memory_percent: Math.random() * 65,
+                        disk_percent: Math.random() * 40
+                    }
+                }
+            };
+            
+            // Add some randomness to select values
+            Object.values(syscalls).forEach(syscall => {
+                // Randomly adjust values to simulate changing metrics
+                syscall.average_time *= 0.8 + Math.random() * 0.4; // +/- 20%
+                syscall.execution_count = Math.floor(syscall.execution_count * (0.9 + Math.random() * 0.2)); // +/- 10%
+                syscall.resource_impact.cpu_percent *= 0.9 + Math.random() * 0.2; // +/- 10%
+                syscall.resource_impact.memory_percent *= 0.9 + Math.random() * 0.2; // +/- 10%
+            });
+            
+            return syscalls;
+        }
+        
+        // Simulate API endpoints
+        const endpoints = {
+            '/performance': getRandomSyscalls,
+            '/categories': () => ['File I/O', 'Memory', 'Process', 'Signal', 'IPC', 'Synchronization', 'Time', 'I/O Multiplexing', 'File System', 'Unknown'],
+            '/recommendations': () => {
+                const syscalls = getRandomSyscalls();
+                const critical = Object.entries(syscalls)
+                    .filter(([_, record]) => 
+                        record.average_time > 0.05 || 
+                        record.resource_impact.cpu_percent > 50 ||
+                        record.resource_impact.memory_percent > 50
+                    )
+                    .map(([syscall, record]) => {
+                        let issue = '';
+                        let recommendation = '';
+                        
+                        if (record.average_time > 0.05) {
+                            issue = `Slow execution time (${record.average_time.toFixed(5)}s)`;
+                            recommendation = 'Optimize code paths that trigger this syscall or reduce call frequency.';
+                        } else if (record.resource_impact.cpu_percent > 50) {
+                            issue = `High CPU impact (${record.resource_impact.cpu_percent.toFixed(1)}%)`;
+                            recommendation = 'Consider batching operations or using more efficient alternatives.';
+                        } else if (record.resource_impact.memory_percent > 50) {
+                            issue = `High memory usage (${record.resource_impact.memory_percent.toFixed(1)}%)`;
+                            recommendation = 'Check for memory leaks or implement more efficient memory management.';
+                        }
+                        
+                        return {
+                            syscall,
+                            issue,
+                            recommendation
+                        };
+                    });
+                
+                return critical;
+            }
+        };
+        
+        // Mock fetch API
+        window.fetch = function(url) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    if (endpoints[url]) {
+                        resolve({
+                            json: () => Promise.resolve(endpoints[url]())
+                        });
+                    } else {
+                        resolve({
+                            json: () => Promise.resolve({})
+                        });
+                    }
+                }, 300);
+            });
+        };
+    </script>
+</body>
+</html>
